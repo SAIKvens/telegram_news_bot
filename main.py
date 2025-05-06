@@ -177,8 +177,11 @@ async def handle_action_choice(msg: Message, state: FSMContext):
         await state.set_state("schedule_time")
 
 # --- SCHEDULE TIME ---
-@router.message(lambda msg: ":" in msg.text and len(msg.text.strip()) <= 5, state="schedule_time")
+@router.message(lambda msg: ":" in msg.text and len(msg.text.strip()) <= 5)
 async def handle_schedule_time(msg: Message, state: FSMContext):
+    current_state = await state.get_state()
+    if current_state != "schedule_time":
+        return
     data = await state.get_data()
     post_text = data.get("post_text", "")
     try:
@@ -252,8 +255,11 @@ async def handle_editpost_pick(callback: CallbackQuery, state: FSMContext):
     await state.set_state("edit_choice")
     await callback.answer()
 
-@router.message(F.text.in_(["Редактировать вручную", "Переписать с GPT"]), state="edit_choice")
+@router.message(F.text.in_(["Редактировать вручную", "Переписать с GPT"]))
 async def handle_edit_choice(msg: Message, state: FSMContext):
+    current_state = await state.get_state()
+    if current_state != "edit_choice":
+        return
     data = await state.get_data()
     if msg.text == "Редактировать вручную":
         await msg.answer("Введи новый текст поста:", reply_markup=ReplyKeyboardRemove())
@@ -270,8 +276,11 @@ async def handle_edit_choice(msg: Message, state: FSMContext):
         await msg.answer("Сохранить этот вариант?", reply_markup=kb)
         await state.set_state("edit_confirm")
 
-@router.message(state="edit_manual")
+@router.message()
 async def handle_edit_manual(msg: Message, state: FSMContext):
+    current_state = await state.get_state()
+    if current_state != "edit_manual":
+        return
     await state.set_data({"edit_new_text": msg.text.strip()})
     kb = ReplyKeyboardMarkup(keyboard=[
         [KeyboardButton(text="Сохранить")],
@@ -280,8 +289,11 @@ async def handle_edit_manual(msg: Message, state: FSMContext):
     await msg.answer("Сохранить этот вариант?", reply_markup=kb)
     await state.set_state("edit_confirm")
 
-@router.message(F.text == "Сохранить", state="edit_confirm")
+@router.message(F.text == "Сохранить")
 async def handle_edit_save(msg: Message, state: FSMContext):
+    current_state = await state.get_state()
+    if current_state != "edit_confirm":
+        return
     data = await state.get_data()
     post_id = data.get("edit_post_id")
     new_text = data.get("edit_new_text")
@@ -292,8 +304,11 @@ async def handle_edit_save(msg: Message, state: FSMContext):
     await msg.answer("Пост обновлен ✅", reply_markup=ReplyKeyboardRemove())
     await state.clear()
 
-@router.message(F.text == "Отмена", state="edit_confirm")
+@router.message(F.text == "Отмена")
 async def handle_edit_cancel(msg: Message, state: FSMContext):
+    current_state = await state.get_state()
+    if current_state != "edit_confirm":
+        return
     await msg.answer("Редактирование отменено", reply_markup=ReplyKeyboardRemove())
     await state.clear()
 

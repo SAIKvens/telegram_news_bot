@@ -1,3 +1,6 @@
+from fastapi import FastAPI, Request
+import uvicorn
+from aiogram.types import Update
 import os
 import re
 import asyncio
@@ -120,6 +123,9 @@ async def handle_delete_all(callback):
 bot = Bot(token=BOT_TOKEN)
 dp = Dispatcher(storage=MemoryStorage())
 scheduler = AsyncIOScheduler(timezone="Europe/Moscow")
+
+# FastAPI app
+app = FastAPI()
 
 def extract_time_and_text(msg: str):
     pattern = r"^(?:[01]\d|2[0-3]):[0-5]\d\s*\n(.+)$"
@@ -246,13 +252,26 @@ async def handle_time(msg: Message, state: FSMContext):
     except:
         await msg.answer("Неверный формат времени. Используйте HH:MM")
 
-async def main():
+
+
+# FastAPI startup/shutdown and webhook
+@app.on_event("startup")
+async def on_startup():
     init_db()
     await set_bot_commands(bot)
     dp.include_router(router)
     scheduler.configure(event_loop=asyncio.get_running_loop())
     scheduler.start()
-    await dp.start_polling(bot)
+    webhook_url = os.getenv("WEBHOOK_HOST") + "/webhook"
+    await bot.set_webhook(webhook_url)
 
-if __name__ == "__main__":
-    asyncio.run(main())
+@app.on_event("shutdown")
+async def on_shutdown():
+    await bot.delete_webhook()
+
+@app.post("/webhook")
+async def handle_webhook(request: Request):
+    body = await request.json()
+    update = Update(**body)
+    await dp.feed_update(bot, update)
+    return {"ok": True}

@@ -213,6 +213,8 @@ async def handle_action(msg: Message, state: FSMContext):
         await bot.send_message(CHANNEL_ID, full_post, parse_mode="Markdown", disable_web_page_preview=True)
         await msg.answer("Пост отправлен ✅", reply_markup=ReplyKeyboardRemove())
         await state.clear()
+        await state.set_state(PostStates.waiting_for_post)
+        await msg.answer("Пришли текст поста")
         sent_posts.append(full_post)
         with sqlite3.connect(DB_PATH) as conn:
             c = conn.cursor()
@@ -220,6 +222,9 @@ async def handle_action(msg: Message, state: FSMContext):
             conn.commit()
     else:
         await msg.answer("Во сколько запланировать? (в формате HH:MM)", reply_markup=ReplyKeyboardRemove())
+        await state.clear()
+        await state.set_state(PostStates.waiting_for_post)
+        await msg.answer("Пришли текст поста")
         await state.set_state(PostStates.waiting_for_time)
 
 @router.message(PostStates.waiting_for_time)

@@ -126,15 +126,13 @@ async def cmd_start_newpost(msg: Message, state: FSMContext):
 async def handle_post_text(msg: Message, state: FSMContext):
     if not msg.text or msg.text.startswith("/"):
         return
-    await state.clear()
-    await state.update_data(original_text=msg.text.strip())
     markup = ReplyKeyboardMarkup(keyboard=[
         [KeyboardButton(text="Оставить как есть")],
         [KeyboardButton(text="Переписать с помощью нейросети")]
     ], resize_keyboard=True, one_time_keyboard=True)
-    await msg.answer("Использовать нейросеть для переписывания или оставить как есть?", reply_markup=markup)
     await state.set_data({"original_text": msg.text.strip()})
     await state.set_state("rewrite_choice")
+    await msg.answer("Использовать нейросеть для переписывания или оставить как есть?", reply_markup=markup)
 
 # --- REWRITE CHOICE ---
 @router.message(F.text.in_(["Оставить как есть", "Переписать с помощью нейросети"]))
